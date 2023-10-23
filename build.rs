@@ -26,7 +26,7 @@ fn main() {
     let mut word_map = WordMap::new();
     let mut doc_map = DocumentMap::new();
 
-    let file = File::open("/Users/aimamit/Project/type-ahead/movie_title.txt").unwrap();
+    let file = File::open("./movie_title.txt").unwrap();
 
     // Create a buffered reader for efficient reading
     let reader = BufReader::new(file);
