@@ -19,8 +19,8 @@ use serde::Deserialize;
 
 fn load_trie_objects() -> (Trie, WordMap, DocumentMap) {
     let trie_fname = "./trie.bin";
-    let word_map_fname = "./word_map.bin";
-    let doc_map_fname = "./doc_map.bin";
+    let word_map_fname = "word_map.bin";
+    let doc_map_fname = "doc_map.bin";
 
     let word_map_path = Path::new(word_map_fname);
     let doc_map_path = Path::new(doc_map_fname);
