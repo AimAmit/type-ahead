@@ -17,5 +17,6 @@ RUN cargo build --release
 
 FROM rust:1.65-slim AS template-rust
 COPY --from=builder /app/target/release/type-ahead /usr/local/bin
+COPY *.bin /usr/local/bin
 EXPOSE 5050
 ENTRYPOINT ["/usr/local/bin/type-ahead"]
