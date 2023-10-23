@@ -1,6 +1,7 @@
 FROM rust:1.73-slim as builder
 WORKDIR /usr/src/myapp
 COPY . .
+RUN rm -rf target
 RUN cargo install --path .
 
 FROM debian:bullseye-slim
