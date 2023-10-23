@@ -76,7 +76,7 @@ async fn main() {
     println!("Server starting");
 
     let port = std::env::var("PORT")
-        .unwrap_or("3000".to_string());
+        .unwrap_or("5050".to_string());
 
     axum::Server::bind(&format!("0.0.0.0:{port}").parse().unwrap())
         .serve(app.into_make_service())
