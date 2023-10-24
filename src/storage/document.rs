@@ -50,6 +50,8 @@ impl DocumentMap {
 
         for (record, (nr_matches, edit)) in similar_map.iter() {
             let record = self.document_map.get(&record).unwrap();
+            println!("record: {record:?} - {:?}", (nr_matches, edit));
+
             matches.push(Record::new(query, &record, *nr_matches, *edit));
         }
 

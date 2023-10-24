@@ -1,3 +1,4 @@
+use edit_distance::edit_distance;
 use fst::{automaton::Levenshtein, IntoStreamer, Set};
 use priority_queue::PriorityQueue;
 use serde::{Deserialize, Serialize};
@@ -84,7 +85,7 @@ impl Trie {
 }
 
 impl Trie {
-    pub fn find_words<'a>(&self, query: &'a str, k: usize) -> Vec<String> {
+    pub fn find_words<'a>(&self, query: &'a str, k: usize) -> Vec<(String, usize)> {
         // let mut pq = PriorityQueue::new();
 
         let lev = Levenshtein::new(query, k as u32).unwrap();
@@ -93,7 +94,8 @@ impl Trie {
         let stream = self.fst.search(lev).into_stream();
 
         let keys = stream.into_strs().unwrap();
-        keys
+
+        keys.iter().map(|key| (key.to_owned(), edit_distance(query, key))).collect()
 
         // let mut pq = BTreeSet::new();
 
@@ -206,8 +208,6 @@ impl Trie {
                     println!("{cache_key} cache miss");
                     let similar_words = self.find_words(wi, k);
 
-                    let similar_words = similar_words.iter().map(|s| (s.clone(), 0)).collect();
-
                     cache::insert_into_cache(&cache_key, &similar_words);
                     similar_words
                 }
@@ -218,7 +218,7 @@ impl Trie {
 
             for list in &word_vec {
                 let word = word_map.get_word(&list.0);
-                let val = ((wi == list.0) as usize, list.1);
+                let val = ((list.1 == 0) as usize, list.1);
                 // curr_records.extend(word.in_records.iter().map(|v| (is_match, list.1 as u16)))
                 for rec in &word.in_records {
                     curr_records.insert(rec.clone(), val);
@@ -232,9 +232,9 @@ impl Trie {
             similar_element_lists = match &similar_element_lists {
                 Some(s) => Some({
                     let mut tmp_mp = HashMap::new();
-                    for (key, (nr_match, edits)) in s.iter() {
+                    for (key, (exact_match, edits)) in s.iter() {
                         if let Some((is_match, edit)) = curr_records.get(key) {
-                            tmp_mp.insert(*key, (nr_match + is_match, edits + edit));
+                            tmp_mp.insert(*key, (exact_match + is_match, edits + edit));
                         }
                     }
                     tmp_mp

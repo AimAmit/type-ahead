@@ -6,6 +6,9 @@ use std::{
     time::Instant,
 };
 
+use edit_distance::edit_distance;
+use fst::{Set, IntoStreamer};
+use fst::automaton::Levenshtein;
 use storage::{document::DocumentMap, trie::Trie, word::WordMap};
 
 use axum::extract::Query;
@@ -174,22 +177,22 @@ async fn search(
 
 //     let load_time = Instant::now() - t1;
 
-//     let query = "to";
+// //     let query = "to";
 
-//     let similar_doc_ids = trie.find_matches(&query, &word_map);
+// //     let similar_doc_ids = trie.find_matches(&query, &word_map);
 
-//     let _t1 = Instant::now();
-//     let search = doc_map.sort_raw_result(&query, &similar_doc_ids);
-//     let _t2 = Instant::now();
-//     println!("sorting res: {}", (_t2 - _t1).as_millis());
+// //     let _t1 = Instant::now();
+// //     let search = doc_map.sort_raw_result(&query, &similar_doc_ids);
+// //     let _t2 = Instant::now();
+// //     println!("sorting res: {}", (_t2 - _t1).as_millis());
 
-// let t2 = Instant::now();
+// // let t2 = Instant::now();
 
-// println!(
-//     "{:?} \n {} ms ",
-//     load_time.as_millis(),
-//     (t2 - t1).as_millis()
-// );
+// // println!(
+// //     "{:?} \n {} ms ",
+// //     load_time.as_millis(),
+// //     (t2 - t1).as_millis()
+// // );
 
 // let mut words = vec![];
 // for (w, _) in word_map.word_hash.iter() {
@@ -216,5 +219,7 @@ async fn search(
 // println!("fst search {} ms ", (t2 - t1).as_millis());
 
 // let keys = stream.into_strs().unwrap();
-// println!("keys: {:?}", keys);
+
+// let keys: Vec<(&String, usize)> = keys.iter().map(|k| (k, edit_distance("revolution", k))).collect();
+// println!("keys: {:#?}", keys);
 // }
