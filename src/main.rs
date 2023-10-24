@@ -105,6 +105,8 @@ async fn search(
 ) -> Json<SearchResult> {
     let query = query.query.unwrap_or_default();
 
+    let query = query.to_lowercase();
+
     let t1 = Instant::now();
 
     let trie = &state.trie;

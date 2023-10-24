@@ -41,10 +41,8 @@ impl DocumentMap {
         query: &'a str,
         similar_map: &HashMap<u32, (usize, usize)>,
     ) -> Vec<String> {
-        let mut query_idx = HashMap::new();
-        for (i, wi) in query.split_whitespace().enumerate() {
-            query_idx.insert(wi, i);
-        }
+        
+        
 
         let mut matches = vec![];
 

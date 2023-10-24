@@ -179,7 +179,7 @@ impl Trie {
     fn nr_allowed_errors<'a>(&self, w: &'a str, is_last: bool) -> usize {
         if is_last {
             (w.len() as f32).powf(0.8).min(3.0).floor() as usize
-        } else if w.len() > 3 {
+        } else if w.len() > 4 {
             2
         } else {
             1
@@ -219,7 +219,6 @@ impl Trie {
             for list in &word_vec {
                 let word = word_map.get_word(&list.0);
                 let val = ((list.1 == 0) as usize, list.1);
-                // curr_records.extend(word.in_records.iter().map(|v| (is_match, list.1 as u16)))
                 for rec in &word.in_records {
                     curr_records.insert(rec.clone(), val);
                 }
@@ -247,7 +246,7 @@ impl Trie {
                 curr_len,
                 similar_element_lists.as_ref().unwrap().len()
             );
-        }
+        }        
 
         match similar_element_lists {
             Some(mp) => mp,
