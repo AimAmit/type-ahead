@@ -106,7 +106,7 @@ impl Record {
                 let first = position.first().unwrap_or(&0);
                 let tmp = position
                     .iter()
-                    .map(|e| e - first)
+                    // .map(|e| e - first)
                     .zip(0..position.len())
                     .map(|(query_pos, record_pos)| (query_pos - record_pos).pow(2))
                     .sum::<usize>();
