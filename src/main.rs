@@ -1,24 +1,18 @@
 mod storage;
-use std::{
-    fs::File,
-    path::Path,
-    sync::Arc,
-    time::Instant,
-};
+use std::collections::{HashMap, BTreeMap};
+use std::{fs::File, path::Path, sync::Arc, time::Instant};
 
 use edit_distance::edit_distance;
-use fst::{Set, IntoStreamer};
 use fst::automaton::Levenshtein;
+use fst::{IntoStreamer, Set};
+use storage::record::Record;
 use storage::{document::DocumentMap, trie::Trie, word::WordMap};
 
 use axum::extract::Query;
-use axum::{
-    extract::State, routing::get, Json, Router,
-};
+use axum::{extract::State, routing::get, Json, Router};
 use tower_http::cors::CorsLayer;
 
 use serde::Deserialize;
-
 
 fn load_trie_objects() -> (Trie, WordMap, DocumentMap) {
     let trie_fname = "./trie.bin";
@@ -173,55 +167,84 @@ async fn search(
 //     //     println!("{:?} - {}", record, record.calculate_distance());
 //     // }
 
-//     let t1 = Instant::now();
+//     // let t1 = Instant::now();
 
-//     let (trie, word_map, doc_map) = load_trie_objects();
+//     // let (trie, word_map, doc_map) = load_trie_objects();
 
-//     let load_time = Instant::now() - t1;
+//     // let load_time = Instant::now() - t1;
 
-// //     let query = "to";
+//     //     let query = "to";
 
-// //     let similar_doc_ids = trie.find_matches(&query, &word_map);
+//     //     let similar_doc_ids = trie.find_matches(&query, &word_map);
 
-// //     let _t1 = Instant::now();
-// //     let search = doc_map.sort_raw_result(&query, &similar_doc_ids);
-// //     let _t2 = Instant::now();
-// //     println!("sorting res: {}", (_t2 - _t1).as_millis());
+//     //     let _t1 = Instant::now();
+//     //     let search = doc_map.sort_raw_result(&query, &similar_doc_ids);
+//     //     let _t2 = Instant::now();
+//     //     println!("sorting res: {}", (_t2 - _t1).as_millis());
 
-// // let t2 = Instant::now();
+//     // let t2 = Instant::now();
 
-// // println!(
-// //     "{:?} \n {} ms ",
-// //     load_time.as_millis(),
-// //     (t2 - t1).as_millis()
-// // );
+//     // println!(
+//     //     "{:?} \n {} ms ",
+//     //     load_time.as_millis(),
+//     //     (t2 - t1).as_millis()
+//     // );
 
-// let mut words = vec![];
-// for (w, _) in word_map.word_hash.iter() {
-//     words.push(w);
-// }
+//     // let mut words = vec![];
+//     // for (w, _) in word_map.word_hash.iter() {
+//     //     words.push(w);
+//     // }
 
-// let t1 = Instant::now();
-// words.sort();
-// let set = Set::from_iter(words.iter()).unwrap();
+//     // let t1 = Instant::now();
+//     // words.sort();
+//     // let set = Set::from_iter(words.iter()).unwrap();
 
-// let t2 = Instant::now();
+//     // let t2 = Instant::now();
 
-// println!("fst set build {} ms ", (t2 - t1).as_millis());
+//     // println!("fst set build {} ms ", (t2 - t1).as_millis());
 
-// let t1 = Instant::now();
-// // Build our fuzzy query.
-// let lev = Levenshtein::new("revolution", 3).unwrap();
+//     // let t1 = Instant::now();
+//     // // Build our fuzzy query.
+//     // let lev = Levenshtein::new("revolution", 3).unwrap();
 
-// // Apply our fuzzy query to the set we built.
-// let stream = set.search(lev).into_stream();
+//     // // Apply our fuzzy query to the set we built.
+//     // let stream = set.search(lev).into_stream();
 
-// let t2 = Instant::now();
+//     // let t2 = Instant::now();
 
-// println!("fst search {} ms ", (t2 - t1).as_millis());
+//     // println!("fst search {} ms ", (t2 - t1).as_millis());
 
-// let keys = stream.into_strs().unwrap();
+//     // let keys = stream.into_strs().unwrap();
 
-// let keys: Vec<(&String, usize)> = keys.iter().map(|k| (k, edit_distance("revolution", k))).collect();
-// println!("keys: {:#?}", keys);
+//     // let keys: Vec<(&String, usize)> = keys
+//     //     .iter()
+//     //     .map(|k| (k, edit_distance("revolution", k)))
+//     //     .collect();
+//     // println!("keys: {:#?}", keys);
+
+//     let query = "the the lord of ";
+//     let record = "the lord the ring";
+
+//     let mut query_pos = HashMap::new();
+//     for (idx, wi) in query.split_whitespace().enumerate() {
+//         query_pos.entry(wi.to_string()).or_insert(vec![]).push(idx);
+//     }
+
+//     let query_pos = query_pos
+//         .iter()
+//         .map(|(k, v)| (k.to_owned(), v.to_owned()))
+//         .collect::<HashMap<String, Vec<usize>>>();
+
+//     let r = Record::new(query, &query_pos, record, 0, 0);
+
+//     println!("record: {:?}", r);
+
+//     let mut record_pos = BTreeMap::new();
+//     for (idx, wi) in record.split_whitespace().enumerate() {
+//         record_pos.entry(wi.to_string()).or_insert(vec![]).push(idx);
+//     }
+
+//     println!("query_pos: {:?}\nrecord_pos: {:?}", query_pos, record_pos);
+
+//     println!("comb: {:?}", r.generate_all_combinations());
 // }

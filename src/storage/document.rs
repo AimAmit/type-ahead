@@ -42,7 +42,15 @@ impl DocumentMap {
         similar_map: &HashMap<u32, (usize, usize)>,
     ) -> Vec<String> {
         
-        
+        let mut query_pos = HashMap::new();
+        for (idx, wi) in query.split_whitespace().enumerate() {
+            query_pos.entry(wi.to_string()).or_insert(vec![]).push(idx);
+        }
+
+        let query_pos = query_pos
+        .iter()
+        .map(|(k, v)| (k.to_owned(), v.to_owned()))
+        .collect::<HashMap<String, Vec<usize>>>();
 
         let mut matches = vec![];
 
@@ -50,7 +58,7 @@ impl DocumentMap {
             let record = self.document_map.get(&record).unwrap();
             println!("record: {record:?} - {:?}", (nr_matches, edit));
 
-            matches.push(Record::new(query, &record, *nr_matches, *edit));
+            matches.push(Record::new(query, &query_pos, &record, *nr_matches, *edit));
         }
 
         matches.sort_by(|a, b| {
