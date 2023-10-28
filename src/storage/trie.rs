@@ -95,7 +95,9 @@ impl Trie {
 
         let keys = stream.into_strs().unwrap();
 
-        keys.iter().map(|key| (key.to_owned(), edit_distance(query, key))).collect()
+        keys.iter()
+            .map(|key| (key.to_owned(), edit_distance(query, key)))
+            .collect()
 
         // let mut pq = BTreeSet::new();
 
@@ -223,8 +225,8 @@ impl Trie {
             for list in &word_vec {
                 let word = word_map.get_word(&list.0);
                 let val = ((list.1 == 0) as usize, list.1);
+                // println!("{:?}: in_records: {:?}", word.id, word.in_records);
                 for rec in &word.in_records {
-                    
                     if let None = word_pos_mp.get(rec) {
                         if let Some(_) = curr_word_doc.get(&rec.0) {
                             continue;
@@ -235,7 +237,6 @@ impl Trie {
                     }
                 }
             }
-
 
             let curr_len = &curr_records.len();
             let _t2 = Instant::now();
@@ -259,7 +260,7 @@ impl Trie {
                 curr_len,
                 similar_element_lists.as_ref().unwrap().len()
             );
-        }        
+        }
 
         match similar_element_lists {
             Some(mp) => mp,
