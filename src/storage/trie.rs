@@ -179,9 +179,10 @@ impl Trie {
     }
 
     fn nr_allowed_errors<'a>(&self, w: &'a str, is_last: bool) -> usize {
-        if is_last {
-            (w.len() as f32).powf(0.8).min(3.0).floor() as usize
-        } else if w.len() > 4 {
+        // if is_last {
+        //     (w.len() as f32).powf(0.8).min(3.0).floor() as usize
+        // } else
+        if w.len() > 4 {
             2
         } else {
             1
@@ -225,7 +226,6 @@ impl Trie {
             for list in &word_vec {
                 let word = word_map.get_word(&list.0);
                 let val = ((list.1 == 0) as usize, list.1);
-                // println!("{:?}: in_records: {:?}", word.id, word.in_records);
                 for rec in &word.in_records {
                     if let None = word_pos_mp.get(rec) {
                         if let Some(_) = curr_word_doc.get(&rec.0) {
