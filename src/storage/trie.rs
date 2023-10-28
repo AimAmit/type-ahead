@@ -195,6 +195,8 @@ impl Trie {
 
         let mut similar_element_lists: Option<HashMap<u32, (usize, usize)>> = None;
 
+        let mut word_pos_mp = HashSet::new();
+
         for (i, wi) in query.split_whitespace().enumerate() {
             let k = self.nr_allowed_errors(wi, i == query.split_whitespace().count() - 1);
 
@@ -216,13 +218,24 @@ impl Trie {
             let mut curr_records: HashMap<u32, (usize, usize)> = HashMap::new();
             let _t1 = Instant::now();
 
+            let mut curr_word_doc = HashSet::new();
+
             for list in &word_vec {
                 let word = word_map.get_word(&list.0);
                 let val = ((list.1 == 0) as usize, list.1);
                 for rec in &word.in_records {
-                    curr_records.insert(rec.clone(), val);
+                    
+                    if let None = word_pos_mp.get(rec) {
+                        if let Some(_) = curr_word_doc.get(&rec.0) {
+                            continue;
+                        }
+                        curr_word_doc.insert(rec.0.to_owned());
+                        curr_records.insert(rec.0.clone(), val);
+                        word_pos_mp.insert(rec.clone());
+                    }
                 }
             }
+
 
             let curr_len = &curr_records.len();
             let _t2 = Instant::now();

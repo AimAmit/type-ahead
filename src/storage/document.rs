@@ -100,7 +100,7 @@ impl Document {
         for (pos, e) in result_text.split_whitespace().enumerate() {
             let mut word = word_map.get_or_create_word_mut(e);
 
-            word.in_records.push(self.id);
+            word.in_records.push((self.id, pos as u16));
             word.postion.push(pos as u32);
             word.popularity += 1;
 

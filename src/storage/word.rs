@@ -8,7 +8,7 @@ static WORD_COUNTER: AtomicU32 = AtomicU32::new(0);
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Word {
     id: u32,
-    pub in_records: Vec<u32>,
+    pub in_records: Vec<(u32, u16)>,
     pub postion: Vec<u32>,
     pub popularity: u32,
 }
