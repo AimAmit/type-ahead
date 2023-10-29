@@ -90,6 +90,7 @@ struct SearchQuery {
 struct SearchResult {
     query: String,
     results: Vec<String>,
+    html_results: Vec<String>,
     time: u128,
 }
 
@@ -121,9 +122,12 @@ async fn search(
     // println!("{} ms ", (t2 - t1).as_millis());
 
     // Create a JSON response
+    let results = search.iter().map(|r| r.1.to_owned()).collect();
+    let html_results = search.iter().map(|r| r.0.to_owned()).collect();
     Json(SearchResult {
         query,
-        results: search,
+        results,
+        html_results,
         time: (t2 - t1).as_millis(),
     })
 }
@@ -222,8 +226,8 @@ async fn search(
 //     //     .collect();
 //     // println!("keys: {:#?}", keys);
 
-//     let query = "the the lord of ";
-//     let record = "the lord the ring";
+//     let query = "the lord of the";
+//     let record = "the lord ring of the";
 
 //     let mut query_pos = HashMap::new();
 //     for (idx, wi) in query.split_whitespace().enumerate() {
@@ -239,12 +243,7 @@ async fn search(
 
 //     println!("record: {:?}", r);
 
-//     let mut record_pos = BTreeMap::new();
-//     for (idx, wi) in record.split_whitespace().enumerate() {
-//         record_pos.entry(wi.to_string()).or_insert(vec![]).push(idx);
-//     }
-
-//     println!("query_pos: {:?}\nrecord_pos: {:?}", query_pos, record_pos);
-
 //     println!("comb: {:?}", r.generate_all_combinations());
+
+//     println!("res: {:?}", r.updated_record);
 // }
