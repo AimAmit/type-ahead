@@ -26,7 +26,7 @@ fn main() {
     let mut word_map = WordMap::new();
     let mut doc_map = DocumentMap::new();
 
-    let file = File::open("./movie_title.txt").unwrap();
+    let file = File::open("./movie_title_tmdb.txt").unwrap();
 
     // Create a buffered reader for efficient reading
     let reader = BufReader::new(file);
@@ -46,10 +46,9 @@ fn main() {
             eprintln!("Error reading a line.");
         }
         idx += 1;
-
-        if idx > 100_000 {
-            break;
-        }
+        // if idx > 1_000_000 {
+        //     break;
+        // }
     }
 
     let mut words = vec![];
