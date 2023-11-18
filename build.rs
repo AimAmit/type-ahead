@@ -46,9 +46,9 @@ fn main() {
             eprintln!("Error reading a line.");
         }
         idx += 1;
-        // if idx > 1_000_000 {
-        //     break;
-        // }
+        if idx > 100_000 {
+            break;
+        }
     }
 
     let mut words = vec![];
