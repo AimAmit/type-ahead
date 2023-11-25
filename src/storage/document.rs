@@ -7,7 +7,12 @@ use std::{
 use serde::{Deserialize, Serialize};
 use unidecode::unidecode;
 
-use super::{record::Record, trie::Trie, word::WordMap};
+use super::{
+    record::Record,
+    trie::Trie,
+    word::{Word, WordMap},
+};
+use crate::traits::{WordProcesImpl, DocumentMapImpl, DocumentImpl};
 
 static DOCUMENT_COUNTER: AtomicU32 = AtomicU32::new(0);
 
@@ -21,12 +26,6 @@ impl DocumentMap {
         DocumentMap {
             document_map: HashMap::new(),
         }
-    }
-
-    pub fn add_doc(&mut self, text: String) -> Document {
-        let id = DOCUMENT_COUNTER.fetch_add(1, Ordering::SeqCst);
-        self.document_map.insert(id, text.clone());
-        Document { id, text }
     }
 
     pub fn get_document(&self, doc_id: &Vec<u32>) -> Vec<String> {
@@ -71,9 +70,17 @@ impl DocumentMap {
 
         matches
             .iter()
-            .map(|ele| (ele.updated_record.clone(), ele.record.to_owned()) )
+            .map(|ele| (ele.updated_record.clone(), ele.record.to_owned()))
             .take(10)
             .collect()
+    }
+}
+
+impl DocumentMapImpl for DocumentMap {
+    fn add_doc(&mut self, text: String) -> impl DocumentImpl {
+        let id = DOCUMENT_COUNTER.fetch_add(1, Ordering::SeqCst);
+        self.document_map.insert(id, text.clone());
+        Document { id, text }
     }
 }
 
@@ -84,8 +91,8 @@ pub struct Document {
     // word_index: Vec<usize>,
 }
 
-impl Document {
-    pub fn process(&self, word_map: &mut WordMap) {
+impl DocumentImpl for Document {
+    fn process<T: WordProcesImpl>(&self, word_map: &mut T) {
         let text = unidecode(&self.text);
 
         let text = text.to_lowercase();
@@ -105,11 +112,12 @@ impl Document {
         }
 
         for (pos, e) in result_text.split_whitespace().enumerate() {
-            let mut word = word_map.get_or_create_word_mut(e);
+            let mut word = word_map.get_or_create_word_mut(e); // as &mut Word;
 
-            word.in_records.push((self.id, pos as u16));
-            word.postion.push(pos as u32);
-            word.popularity += 1;
+            word.update_pos(self.id, pos as u32);
+            // word.in_records.push((self.id, pos as u16));
+            // word.postion.push(pos as u32);
+            // word.popularity += 1;
 
             // trie.insert(e);
         }

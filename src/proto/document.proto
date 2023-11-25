@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package storage_proto.document;
+
+message Document {
+    uint32 id = 1;
+    string text = 2;
+}
+
+message DocumentMap {
+    map<uint32, string> document_map = 1;
+}

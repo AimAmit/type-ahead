@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package storage_proto.word;
+
+message WordRecordTuple {
+    uint32 id = 1;
+    uint32 pos = 2;
+}
+
+message Word {
+    uint32 id = 1;
+    repeated WordRecordTuple in_records = 2;
+    repeated uint32 position = 3;
+    uint32 popularity = 4;
+}
+
+message WordMap {
+    map<string, Word> word_hash = 1;
+}

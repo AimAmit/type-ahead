@@ -1,40 +1,143 @@
 mod storage;
-use std::collections::{HashMap, BTreeMap};
+mod storage_proto;
+mod traits;
+
+use std::collections::{BTreeMap, HashMap};
+use std::io::{BufReader, Write, Read};
 use std::{fs::File, path::Path, sync::Arc, time::Instant};
 
 use edit_distance::edit_distance;
 use fst::automaton::Levenshtein;
 use fst::{IntoStreamer, Set};
+use prost::Message;
 use storage::record::Record;
 use storage::{document::DocumentMap, trie::Trie, word::WordMap};
 
 use axum::extract::Query;
 use axum::{extract::State, routing::get, Json, Router};
 use tower_http::cors::CorsLayer;
-
+use std::{
+    io::{BufRead},
+};
 use serde::Deserialize;
+use storage_proto::{WordMap as WordMapProto, DocumentMap as DocumentMapProto};
+
+use crate::traits::{DocumentImpl, DocumentMapImpl, WordProcesImpl};
+
+fn build_fs_bin() {
+
+    let trie_fname = "trie.bin";
+    let word_map_fname = "word_map.proto.bin";
+    let doc_map_fname = "doc_map.proto.bin";
+
+    let trie_path = Path::new(trie_fname);
+    let word_map_path = Path::new(word_map_fname);
+    let doc_map_path = Path::new(doc_map_fname);
+
+    if word_map_path.exists() && doc_map_path.exists() {
+        return;
+    }
+
+        let mut word_map = WordMapProto::default();
+    // let mut word_map = WordMap::new();
+    let mut doc_map = DocumentMapProto::default();
+    // let mut doc_map = DocumentMap::new();
+
+    let file = File::open("./movie_title_tmdb.txt").unwrap();
+
+    // Create a buffered reader for efficient reading
+    let reader = BufReader::new(file);
+
+    // Iterate over each line and call the process_line function
+    let mut idx = 0;
+    for line_result in reader.lines() {
+        if let Ok(mut line) = line_result {
+            // if line.len() > 32 {
+            //     line = line[..32].to_owned();
+            // }
+            let d = doc_map.add_doc(line.to_owned());
+            d.process(&mut word_map);
+            // mx_len = max(mx_len, line.len());
+            println!("{idx}\r");
+        } else {
+            eprintln!("Error reading a line.");
+        }
+        idx += 1;
+        // if idx > 100_000 {
+        //     break;
+        // }
+    }
+
+    let mut words = vec![];
+    for (w, _) in word_map.word_hash.iter() {
+        words.push(w);
+    }
+
+    // let mut trie = Trie::new(words);
+    // println!("mx_len --- {}", mx_len);
+
+    // trie.write_to_bytes
+
+    // let file = File::create(trie_path).expect("Failed to create data file");
+    // bincode::serialize_into(file, &trie).expect("Failed to serialize Trie");
+
+    // serde_json::to_writer_pretty(file, &trie).expect("Failed to serialize trie");
+
+    let mut file = File::create(doc_map_path).expect("Failed to create data file");
+    let buf = doc_map.encode_to_vec();
+    file.write_all(&buf).expect("Failed to write doc_map");
+    
+
+    // bincode::serialize_into(file, &doc_map).expect("Failed to serialize doc_map");
+
+    let mut file = File::create(word_map_path).expect("Failed to create data file");
+    let buf = word_map.encode_to_vec();
+    file.write_all(&buf).expect("Failed to write word_map");
+    // bincode::serialize_into(file, &word_map).expect("Failed to serialize word_map");
+
+}
 
 fn load_trie_objects() -> (Trie, WordMap, DocumentMap) {
-    let trie_fname = "./trie.bin";
+
+    let trie_fname = "trie.bin";
     let word_map_fname = "word_map.bin";
+    let word_map_fname_proto = "word_map.proto.bin";
     let doc_map_fname = "doc_map.bin";
+    let doc_map_fname_proto = "doc_map.proto.bin";
 
     let pwd = std::env::current_dir().unwrap();
 
     let word_map_path = pwd.join(word_map_fname);
     let doc_map_path = pwd.join(doc_map_fname);
 
+    let word_map_path_proto = pwd.join(word_map_fname_proto);
+    let doc_map_path_proto = pwd.join(doc_map_fname_proto);
+
     let t1 = Instant::now();
     println!("trie load time: {}", (Instant::now() - t1).as_millis());
 
     let t1 = Instant::now();
-    let word_map_file = File::open(word_map_path).unwrap();
+    let mut word_map_file_proto = File::open(word_map_path_proto).unwrap();
+    let mut word_map_file = File::open(word_map_path).unwrap();
+    let mut buf = Vec::new();
+    word_map_file_proto.read_to_end(&mut buf).expect("Failed to read doc_map");
+    let buf = prost::bytes::Bytes::from(buf);
+    let word_map_proto: WordMapProto = WordMapProto::decode(buf).expect("Failed to decode doc_map");
+
     let word_map: WordMap =
         bincode::deserialize_from(word_map_file).expect("Failed to deserialize Trie");
     println!("word map load time: {}", (Instant::now() - t1).as_millis());
 
     let t1 = Instant::now();
-    let doc_map_file = File::open(doc_map_path).unwrap();
+    let mut doc_map_file_proto = File::open(doc_map_path_proto).unwrap();
+
+    let mut doc_map_file = File::open(doc_map_path).unwrap();
+
+    let mut buf = Vec::new();
+    doc_map_file_proto.read_to_end(&mut buf).expect("Failed to read doc_map");
+    let buf = prost::bytes::Bytes::from(buf);
+    let doc_map_proto: DocumentMapProto = DocumentMapProto::decode(buf).expect("Failed to decode doc_map");
+
     let doc_map: DocumentMap =
         bincode::deserialize_from(doc_map_file).expect("Failed to deserialize Trie");
     println!("doc map load time: {}", (Instant::now() - t1).as_millis());
@@ -57,6 +160,7 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
+    build_fs_bin();
     let (trie, word_map, doc_map) = load_trie_objects();
 
     let shared_state = Arc::new(AppState {
@@ -72,8 +176,7 @@ async fn main() {
 
     println!("Server starting");
 
-    let port = std::env::var("PORT")
-        .unwrap_or("5050".to_string());
+    let port = std::env::var("PORT").unwrap_or("5050".to_string());
 
     axum::Server::bind(&format!("0.0.0.0:{port}").parse().unwrap())
         .serve(app.into_make_service())
