@@ -228,11 +228,11 @@ impl Trie {
                 let val = ((list.1 == 0) as usize, list.1);
                 for rec in &word.in_records {
                     if let None = word_pos_mp.get(rec) {
-                        if let Some(_) = curr_word_doc.get(&rec.0) {
+                        if let Some(_) = curr_word_doc.get(&rec.idx) {
                             continue;
                         }
-                        curr_word_doc.insert(rec.0.to_owned());
-                        curr_records.insert(rec.0.clone(), val);
+                        curr_word_doc.insert(rec.idx.to_owned());
+                        curr_records.insert(rec.idx.clone(), val);
                         word_pos_mp.insert(rec.clone());
                     }
                 }

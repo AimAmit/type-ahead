@@ -1,26 +1,40 @@
-use std::{sync::atomic::{AtomicUsize, Ordering, AtomicU32}, collections::HashMap};
+use std::{sync::atomic::{Ordering, AtomicU32}, collections::HashMap};
+use prost::Message;
 
 use serde::{Deserialize, Serialize};
 
 
 static WORD_COUNTER: AtomicU32 = AtomicU32::new(0);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Hash, PartialEq, Eq, Serialize, Deserialize, Message)]
+pub struct WordInRecord {
+    #[prost(uint32, tag = "1")]
+    pub idx: u32,    
+    #[prost(uint32, tag = "2")]
+    pub pos: u32,
+}
+
+#[derive(PartialEq, Eq, Serialize, Deserialize, Message)]
 pub struct Word {
+    #[prost(uint32, tag = "1")]
     id: u32,
-    pub in_records: Vec<(u32, u16)>,
-    pub postion: Vec<u32>,
+    #[prost(message, repeated, tag = "2")]
+    pub in_records: Vec<WordInRecord>,
+    #[prost(uint32, repeated, tag = "3")]
+    pub position: Vec<u32>,
+    #[prost(uint32, tag = "4")]
     pub popularity: u32,
 }
 impl Word {
     pub fn new(id: u32) -> Self {
-        Word { id, in_records: vec![], postion: vec![], popularity: 0 }
+        Word { id, in_records: vec![], position: vec![], popularity: 0 }
     }
 }
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Message)]
 pub struct WordMap {
+    #[prost(map = "string, message", tag = "1")]
     pub word_hash: HashMap<String, Word>
 }
 

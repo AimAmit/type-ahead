@@ -1,28 +1,38 @@
 use std::{
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Write},
     path::Path,
 };
 
 #[path = "src/storage/mod.rs"]
 mod storage;
 
+use prost::Message;
 use storage::{document::DocumentMap, trie::Trie, word::WordMap};
 
 fn main() {
+    let mut config = prost_build::Config::new();
+    config.btree_map(&["."]);
+
+    // config
+    //     .compile_protos(
+    //         &["src/proto/word.proto", "src/proto/document.proto"],
+    //         &["src/"],
+    //     )
+    //     .unwrap();
+
     let trie_fname = "trie.bin";
-    let word_map_fname = "word_map.bin";
-    let doc_map_fname = "doc_map.bin";
+    let word_map_fname = "word_map.proto.bin";
+    let doc_map_fname = "doc_map.proto.bin";
 
     let trie_path = Path::new(trie_fname);
     let word_map_path = Path::new(word_map_fname);
     let doc_map_path = Path::new(doc_map_fname);
 
-    if trie_path.exists() && word_map_path.exists() && doc_map_path.exists() {
-        return;
-    }
+    // if trie_path.exists() && word_map_path.exists() && doc_map_path.exists() {
+    //     return;
+    // }
 
-    
     let mut word_map = WordMap::new();
     let mut doc_map = DocumentMap::new();
 
@@ -46,9 +56,9 @@ fn main() {
             eprintln!("Error reading a line.");
         }
         idx += 1;
-        if idx > 100_000 {
-            break;
-        }
+        // if idx > 100_000 {
+        //     break;
+        // }
     }
 
     let mut words = vec![];
@@ -66,9 +76,13 @@ fn main() {
 
     // serde_json::to_writer_pretty(file, &trie).expect("Failed to serialize trie");
 
-    let file = File::create(doc_map_path).expect("Failed to create data file");
-    bincode::serialize_into(file, &doc_map).expect("Failed to serialize doc_map");
+    let mut file = File::create(doc_map_path).expect("Failed to create data file");
+    let buf = Message::encode_to_vec(&doc_map);
+    file.write_all(&buf).expect("Failed to write doc_map");
+    // bincode::serialize_into(file, &doc_map).expect("Failed to serialize doc_map");
 
-    let file = File::create(word_map_path).expect("Failed to create data file");
-    bincode::serialize_into(file, &word_map).expect("Failed to serialize word_map");
+    let mut file = File::create(word_map_path).expect("Failed to create data file");
+    let buf = Message::encode_to_vec(&word_map);
+    file.write_all(&buf).expect("Failed to write doc_map");
+    // bincode::serialize_into(file, &word_map).expect("Failed to serialize word_map");
 }

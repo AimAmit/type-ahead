@@ -1,18 +1,20 @@
 use std::{
     collections::HashMap,
-    sync::atomic::{AtomicU32, AtomicUsize, Ordering},
+    sync::atomic::{AtomicU32, Ordering},
     usize,
 };
 
+use prost::Message;
 use serde::{Deserialize, Serialize};
 use unidecode::unidecode;
 
-use super::{record::Record, trie::Trie, word::WordMap};
+use super::{record::Record, word::{WordMap, WordInRecord}};
 
 static DOCUMENT_COUNTER: AtomicU32 = AtomicU32::new(0);
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Message)]
 pub struct DocumentMap {
+    #[prost(map = "uint32, string", tag = "1")]
     document_map: HashMap<u32, String>,
 }
 
@@ -77,9 +79,11 @@ impl DocumentMap {
     }
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Message)]
 pub struct Document {
+    #[prost(uint32, tag = "1")]
     id: u32,
+    #[prost(string, tag = "2")]
     text: String,
     // word_index: Vec<usize>,
 }
@@ -107,8 +111,8 @@ impl Document {
         for (pos, e) in result_text.split_whitespace().enumerate() {
             let mut word = word_map.get_or_create_word_mut(e);
 
-            word.in_records.push((self.id, pos as u16));
-            word.postion.push(pos as u32);
+            word.in_records.push( WordInRecord { idx: self.id, pos: pos as u32} );
+            word.position.push(pos as u32);
             word.popularity += 1;
 
             // trie.insert(e);

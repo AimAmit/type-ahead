@@ -20,6 +20,7 @@ tower-http = { version = "0.4.4", features = ["cors"] }
 fst = { version = "0.4.7", features = ["levenshtein"]}
 edit-distance = "2.1.0"
 difference = "2.0.0"
+prost = "0.12.3"
 
 
 [build-dependencies]
@@ -32,3 +33,5 @@ lazy_static = "1"
 fst = { version = "0.4.7", features = ["levenshtein"]}
 edit-distance = "2.1.0"
 difference = "2.0.0"
+prost = "0.12.3"
+prost-build = "0.12.3"

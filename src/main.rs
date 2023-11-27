@@ -1,10 +1,12 @@
 mod storage;
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{BTreeMap, HashMap};
+use std::io::Read;
 use std::{fs::File, path::Path, sync::Arc, time::Instant};
 
 use edit_distance::edit_distance;
 use fst::automaton::Levenshtein;
 use fst::{IntoStreamer, Set};
+use prost::Message;
 use storage::record::Record;
 use storage::{document::DocumentMap, trie::Trie, word::WordMap};
 
@@ -16,8 +18,8 @@ use serde::Deserialize;
 
 fn load_trie_objects() -> (Trie, WordMap, DocumentMap) {
     let trie_fname = "./trie.bin";
-    let word_map_fname = "word_map.bin";
-    let doc_map_fname = "doc_map.bin";
+    let word_map_fname = "word_map.proto.bin";
+    let doc_map_fname = "doc_map.proto.bin";
 
     let pwd = std::env::current_dir().unwrap();
 
@@ -28,15 +30,29 @@ fn load_trie_objects() -> (Trie, WordMap, DocumentMap) {
     println!("trie load time: {}", (Instant::now() - t1).as_millis());
 
     let t1 = Instant::now();
-    let word_map_file = File::open(word_map_path).unwrap();
-    let word_map: WordMap =
-        bincode::deserialize_from(word_map_file).expect("Failed to deserialize Trie");
+    let mut word_map_file = File::open(word_map_path).unwrap();
+    // let word_map: WordMap =
+    //     bincode::deserialize_from(word_map_file).expect("Failed to deserialize Trie");
+
+    let mut buf = Vec::new();
+    word_map_file
+        .read_to_end(&mut buf)
+        .expect("Failed to read doc_map");
+    let buf = prost::bytes::Bytes::from(buf);
+    let word_map: WordMap = Message::decode(buf).expect("Failed to decode doc_map");
+
     println!("word map load time: {}", (Instant::now() - t1).as_millis());
 
     let t1 = Instant::now();
-    let doc_map_file = File::open(doc_map_path).unwrap();
-    let doc_map: DocumentMap =
-        bincode::deserialize_from(doc_map_file).expect("Failed to deserialize Trie");
+    let mut doc_map_file = File::open(doc_map_path).unwrap();
+    // let doc_map: DocumentMap =
+    //     bincode::deserialize_from(doc_map_file).expect("Failed to deserialize Trie");
+
+    let mut buf = Vec::new();
+    doc_map_file.read_to_end(&mut buf).expect("Failed to read doc_map");
+    let buf = prost::bytes::Bytes::from(buf);
+    let doc_map: DocumentMap = Message::decode(buf).expect("Failed to decode doc_map");
+
     println!("doc map load time: {}", (Instant::now() - t1).as_millis());
 
     let mut words = vec![];
@@ -72,8 +88,7 @@ async fn main() {
 
     println!("Server starting");
 
-    let port = std::env::var("PORT")
-        .unwrap_or("5050".to_string());
+    let port = std::env::var("PORT").unwrap_or("5050".to_string());
 
     axum::Server::bind(&format!("0.0.0.0:{port}").parse().unwrap())
         .serve(app.into_make_service())
