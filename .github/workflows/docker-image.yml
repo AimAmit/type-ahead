@@ -27,33 +27,38 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: aimamit
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
-      - name: Build and push by tag
+      - name: Build and push by digest
         id: build
         uses: docker/build-push-action@v5
         with:
           context: .
           tags: ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
           platforms: ${{ matrix.platform }}
-          cache-from: type=gha,scope=${{ github.sha }}-${{ matrix.platform }}
-          cache-to: type=gha,mode=max,scope=${{ github.sha }}-${{ matrix.platform }}
-          push: true
-      
+          cache-from: type=local,src=/tmp/.buildx-cache-${{ matrix.platform }}
+          cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.platform }}
+
       - name: Export digest
-        id: export_digest
         run: |
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' ${{ env.REGISTRY_IMAGE }}:${{ github.sha }} | cut -d'@' -f2)
-          echo "DIGEST=${digest}" >> $GITHUB_ENV
           mkdir -p /tmp/digests
-          echo $digest > /tmp/digests/${digest}.txt
+          echo "${{ steps.build.outputs.digest }}" > /tmp/digests/${{ github.sha }}
       
       - name: Upload digest
         uses: actions/upload-artifact@v4
@@ -71,9 +76,8 @@ jobs:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
+          name: digests-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests
-          pattern: digests-*
-          merge-multiple: true
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -87,20 +91,17 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: aimamit
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
       - name: Create manifest list and push
         run: |
           cd /tmp/digests
-          digests=$(cat *.txt)
-          for digest in $digests; do
-            docker buildx imagetools create --tag ${{ env.REGISTRY_IMAGE }}:$digest ${{ env.REGISTRY_IMAGE }}@$digest
-          done
-      
+          docker buildx imagetools create --tag ${{ env.REGISTRY_IMAGE }}:${{ github.sha }} ${{ steps.build.outputs.digest }}
+
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
 
   Deploy:
     runs-on: ubuntu-latest
