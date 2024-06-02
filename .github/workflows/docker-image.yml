@@ -65,6 +65,7 @@ jobs:
         run: |
           mkdir -p /tmp/digests
           digest="${{ steps.build.outputs.digest }}"
+          echo "DIGEST=$digest" >> $GITHUB_ENV
           touch "/tmp/digests/${digest#sha256:}"
       
       - name: Upload digest
