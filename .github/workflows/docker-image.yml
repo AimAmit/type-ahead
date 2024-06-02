@@ -56,11 +56,12 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          tags: ${{ github.sha }}
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=local,src=/tmp/.buildx-cache-${{ matrix.platform }}
-          cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.platform }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Export digest
         run: |
