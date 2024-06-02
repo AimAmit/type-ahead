@@ -2,7 +2,6 @@ name: ci
 
 on:
   push:
-    branches: [ "master" ]
 
 env:
   REGISTRY_IMAGE: aimamit/typeahead-rs
@@ -15,9 +14,7 @@ jobs:
       matrix:
         platform:
           - linux/amd64
-          # - linux/arm64
-    env:
-      TAG: ${{ github.sha }}
+          - linux/arm64
     steps:
       - name: Prepare
         run: |
@@ -50,15 +47,15 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          tags: ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
           platforms: ${{ matrix.platform }}
-          cache-from: type=local,src=/tmp/.buildx-cache-${{ matrix.platform }}
-          cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.platform }}
-
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+      
       - name: Export digest
         run: |
           mkdir -p /tmp/digests
-          echo "${{ steps.build.outputs.digest }}" > /tmp/digests/${{ github.sha }}
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
       
       - name: Upload digest
         uses: actions/upload-artifact@v4
@@ -76,8 +73,9 @@ jobs:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
-          name: digests-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -91,19 +89,21 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: aimamit
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
       - name: Create manifest list and push
+        working-directory: /tmp/digests
         run: |
-          cd /tmp/digests
-          docker buildx imagetools create --tag ${{ env.REGISTRY_IMAGE }}:${{ github.sha }} ${{ steps.build.outputs.digest }}
-
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+      
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
 
-  Deploy:
+
+  deploy:
     runs-on: ubuntu-latest
     needs:
       - merge
@@ -129,3 +129,137 @@ jobs:
         git add values.yaml
         git commit -m "Update image tag to ${{ github.sha }}"
         git push origin main
+
+
+
+# name: ci
+#
+# on:
+#   push:
+#     branches: [ "master" ]
+#
+# env:
+#   REGISTRY_IMAGE: aimamit/typeahead-rs
+#
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         platform:
+#           - linux/amd64
+#           # - linux/arm64
+#     env:
+#       TAG: ${{ github.sha }}
+#     steps:
+#       - name: Prepare
+#         run: |
+#           platform=${{ matrix.platform }}
+#           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+#
+#       - name: Checkout
+#         uses: actions/checkout@v4
+#
+#       - name: Docker meta
+#         id: meta
+#         uses: docker/metadata-action@v5
+#         with:
+#           images: ${{ env.REGISTRY_IMAGE }}
+#
+#       - name: Set up QEMU
+#         uses: docker/setup-qemu-action@v3
+#
+#       - name: Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v3
+#
+#       - name: Login to Docker Hub
+#         uses: docker/login-action@v3
+#         with:
+#           username: aimamit
+#           password: ${{ secrets.DOCKERHUB_TOKEN }}
+#
+#       - name: Build and push by digest
+#         id: build
+#         uses: docker/build-push-action@v5
+#         with:
+#           context: .
+#           tags: ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
+#           platforms: ${{ matrix.platform }}
+#           cache-from: type=local,src=/tmp/.buildx-cache-${{ matrix.platform }}
+#           cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.platform }}
+#
+#       - name: Export digest
+#         run: |
+#           mkdir -p /tmp/digests
+#           echo "${{ steps.build.outputs.digest }}" > /tmp/digests/${{ github.sha }}
+#
+#       - name: Upload digest
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: digests-${{ env.PLATFORM_PAIR }}
+#           path: /tmp/digests/*
+#           if-no-files-found: error
+#           retention-days: 1
+#
+#   merge:
+#     runs-on: ubuntu-latest
+#     needs:
+#       - build
+#     steps:
+#       - name: Download digests
+#         uses: actions/download-artifact@v4
+#         with:
+#           name: digests-${{ env.PLATFORM_PAIR }}
+#           path: /tmp/digests
+#
+#       - name: Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v3
+#
+#       - name: Docker meta
+#         id: meta
+#         uses: docker/metadata-action@v5
+#         with:
+#           images: ${{ env.REGISTRY_IMAGE }}
+#
+#       - name: Login to Docker Hub
+#         uses: docker/login-action@v3
+#         with:
+#           username: aimamit
+#           password: ${{ secrets.DOCKERHUB_TOKEN }}
+#
+#       - name: Create manifest list and push
+#         run: |
+#           cd /tmp/digests
+#           docker buildx imagetools create --tag ${{ env.REGISTRY_IMAGE }}:${{ github.sha }} ${{ steps.build.outputs.digest }}
+#
+#       - name: Inspect image
+#         run: |
+#           docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ github.sha }}
+#
+#   Deploy:
+#     runs-on: ubuntu-latest
+#     needs:
+#       - merge
+#     env:
+#       DEPLOY_GITOPS_REPO: 'aimamit/infra'
+#       GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+#       GITHUB_SHA: ${{ github.sha }}
+#
+#     steps:
+#     - name: Set up Git
+#       run: |
+#         git config --global user.name "github-actions[bot]"
+#         git config --global user.email "github-actions[bot]@users.noreply.github.com"
+#
+#     - name: Clone Helm Chart Repository
+#       run: git clone https://${{ env.GITHUB_TOKEN }}@github.com/aimamit/infra.git
+#
+#     - name: Update Image Tag in Helm Chart        
+#       run: |
+#         cd infra/projects/typeahead-rs
+#         sed -i "s/^  tag:.*$/  tag: ${GITHUB_SHA}/" values.yaml
+#
+#         git add values.yaml
+#         git commit -m "Update image tag to ${{ github.sha }}"
+#         git push origin main
