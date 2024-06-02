@@ -49,7 +49,9 @@ fn load_trie_objects() -> (Trie, WordMap, DocumentMap) {
     //     bincode::deserialize_from(doc_map_file).expect("Failed to deserialize Trie");
 
     let mut buf = Vec::new();
-    doc_map_file.read_to_end(&mut buf).expect("Failed to read doc_map");
+    doc_map_file
+        .read_to_end(&mut buf)
+        .expect("Failed to read doc_map");
     let buf = prost::bytes::Bytes::from(buf);
     let doc_map: DocumentMap = Message::decode(buf).expect("Failed to decode doc_map");
 
@@ -82,7 +84,7 @@ async fn main() {
     });
 
     let app = Router::new()
-        .route("/", get(|| async { "Hello" }))
+        .route("/", get(|| async { "How u doing" }))
         .route("/search", get(search).with_state(shared_state))
         .layer(CorsLayer::permissive());
 
