@@ -87,7 +87,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY_IMAGE }}
-        tags: |
+          tags: |
             type=sha,enable=true,priority=100,prefix=,suffix=,format=long
       
       - name: Login to Docker Hub
