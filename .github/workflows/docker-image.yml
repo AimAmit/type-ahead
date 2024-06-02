@@ -138,5 +138,6 @@ jobs:
 
         git add values.yaml
         git commit -m "Update image tag to ${{ github.sha }}"
+        git remote add origin git@github.com:AimAmit/infra.git
         git push origin main
       
