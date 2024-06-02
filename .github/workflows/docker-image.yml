@@ -117,21 +117,14 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - merge
-    steps:
-      - name: Update helm chart
-        uses: shini4i/helm-charts-updater@v1
-        with:
-          github_token: ${{ secrets.GH_TOKEN }}
-          gh_user: aimamit
-          gh_repo: infra
-          chart_name: typeahead-rs
-          app_version: ${{ github.ref_name }}
-          image_tag: ${{ steps.meta.outputs.version }}
-          clone_path: charts-repo
-          charts_path: projects
-          commit_author: github-actions[bot]
-          commit_email: github-actions[bot]@users.noreply.github.com
-          generate_docs: true
-          update_readme: true
-          update_chart_annotations: true
+    env:
+      DEPLOY_GITOPS_REPO: 'aimamit/infra'
+      DEPLOY_TOKEN: ${{ secrets.GH_TOKEN }}
 
+    steps:
+      - name: Deploy to test
+        uses: lwitkowski/gitops-deploy-tag-action@master
+        with:
+          target-file: 'projects/typeahead-rs/values.yaml'
+          docker-image-tag: ${{ steps.meta.outputs.version }}
+          
