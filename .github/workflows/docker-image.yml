@@ -129,7 +129,7 @@ jobs:
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
   
     - name: Clone Helm Chart Repository
-      run: git clone https://github.com/aimamit/infra.git
+      run: git clone https://${{ env.GITHUB_TOKEN }}@github.com/aimamit/infra.git
   
     - name: Update Image Tag in Helm Chart        
       run: |
@@ -138,5 +138,4 @@ jobs:
 
         git add values.yaml
         git commit -m "Update image tag to ${{ github.sha }}"
-        git remote set-url origin https://${{ env.GITHUB_TOKEN }}@github.com:AimAmit/infra.git
         git push origin main      
