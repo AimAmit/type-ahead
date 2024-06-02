@@ -122,9 +122,16 @@ jobs:
       DEPLOY_TOKEN: ${{ secrets.GH_TOKEN }}
 
     steps:
-      - name: Deploy to test
-        uses: lwitkowski/gitops-deploy-tag-action@master
-        with:
-          target-file: 'projects/typeahead-rs/values.yaml'
-          docker-image-tag: ${{ steps.meta.outputs.version }}
-          
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+       fetch-depth: 0
+    - name: Install Helm
+      uses: azure/setup-helm@v4
+      env:
+       GITHUB_TOKEN: "${{ secrets.GH_TOKEN }}"
+    
+    - name: Run chart-releaser
+      uses: helm/chart-releaser-action@v1.6.0
+      env:
+        CR_TOKEN: "${{ secrets.GH_TOKEN }}"
