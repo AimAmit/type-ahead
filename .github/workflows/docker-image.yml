@@ -21,10 +21,8 @@ jobs:
     steps:
       - name: Prepare
         run: |
-          mkdir -p /tmp/images
           platform=${{ matrix.platform }}
-          platform=${platform//\//-}
-          echo "PLATFORM_PAIR=${platform}" >> $GITHUB_ENV
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
       
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,9 +48,11 @@ jobs:
           push: true
       
       - name: Export digest
+        id: export_digest
         run: |
-          mkdir -p /tmp/digests
           digest=$(docker inspect --format='{{index .RepoDigests 0}}' ${{ env.REGISTRY_IMAGE }}:${{ github.sha }} | cut -d'@' -f2)
+          echo "DIGEST=${digest}" >> $GITHUB_ENV
+          mkdir -p /tmp/digests
           echo $digest > /tmp/digests/${digest}.txt
       
       - name: Upload digest
@@ -93,9 +93,10 @@ jobs:
       - name: Create manifest list and push
         run: |
           cd /tmp/digests
-          digest_files=$(ls *.txt)
-          digests=$(cat $digest_files | xargs -n 1)
-          docker buildx imagetools create $(printf '${{ env.REGISTRY_IMAGE }}@%s ' $digests)
+          digests=$(cat *.txt)
+          for digest in $digests; do
+            docker buildx imagetools create --tag ${{ env.REGISTRY_IMAGE }}:$digest ${{ env.REGISTRY_IMAGE }}@$digest
+          done
       
       - name: Inspect image
         run: |
