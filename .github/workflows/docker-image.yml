@@ -121,7 +121,6 @@ jobs:
       DEPLOY_GITOPS_REPO: 'aimamit/infra'
       GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       GITHUB_SHA: ${{ github.sha }}
-      GITHUB_ACTOR: ${{ github.actor }}
 
     steps:
     - name: Set up Git
@@ -139,5 +138,5 @@ jobs:
 
         git add values.yaml
         git commit -m "Update image tag to ${{ github.sha }}"
-        git remote set-url origin https://${{ env.GITHUB_ACTOR }}:${{ env.GITHUB_TOKEN }}@github.com:AimAmit/infra.git
+        git remote set-url origin https://${{ env.GITHUB_TOKEN }}@github.com:AimAmit/infra.git
         git push origin main      
