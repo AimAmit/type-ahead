@@ -121,6 +121,7 @@ jobs:
       DEPLOY_GITOPS_REPO: 'aimamit/infra'
       GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       GITHUB_SHA: ${{ github.sha }}
+      GITHUB_ACTOR: ${{ github.actor }}
 
     steps:
     - name: Set up Git
@@ -131,15 +132,12 @@ jobs:
     - name: Clone Helm Chart Repository
       run: git clone https://github.com/aimamit/infra.git
   
-    - name: Update Image Tag in Helm Chart
-      env:
-        GITHUB_TOKEN: ${{ github.sha }}
-        GITHUB_ACTOR: ${{ github.actor }}
+    - name: Update Image Tag in Helm Chart        
       run: |
         cd infra/projects/typeahead-rs
         sed -i "s/^  tag:.*$/  tag: ${GITHUB_SHA}/" values.yaml
 
         git add values.yaml
         git commit -m "Update image tag to ${{ github.sha }}"
-        git remote set-url origin https://${{ GITHUB_ACTOR }}:${{ GITHUB_TOKEN }}@github.com:AimAmit/infra.git
+        git remote set-url origin https://${{ env.GITHUB_ACTOR }}:${{ env.GITHUB_TOKEN }}@github.com:AimAmit/infra.git
         git push origin main      
